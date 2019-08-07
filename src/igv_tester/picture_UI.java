@@ -1,28 +1,26 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package igv_tester;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.concurrent.CountDownLatch;
+import java.util.Calendar;
 
 /**
  *
- * @author U375716
+ * @author Juan Antonio Martinez Castellanos - U375716
  */
 public class picture_UI extends javax.swing.JFrame {
+    //This class displays the picture and prompts the
+    //operator to check for chipping and asks for a response.
+    public String IGV_serial;
 
-    /**
-     * Creates new form picture_UI
-     */
+
+    //The latch is necessary because Main has to wait for this window.
     public picture_UI(CountDownLatch l) {
+        IGV_serial = "ERROR";
         setUndecorated(true);
         initComponents();
-        //jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("tempcapture.jpg")));
         jLabel1.setIcon(new javax.swing.ImageIcon("tempcapture.jpg"));
         setVisible(true);
         selection = '0';
@@ -51,6 +49,11 @@ public class picture_UI extends javax.swing.JFrame {
         jButtonApprove.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonApproveActionPerformed(evt);
+            }
+        });
+        jButtonApprove.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                jButtonApproveKeyPressed(evt);
             }
         });
 
@@ -93,24 +96,91 @@ public class picture_UI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonApproveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonApproveActionPerformed
-        // TODO add your handling code here:
+        //This is triggered if the operator approves the picture
         selection = 'A';
         myLatch.countDown();
-        storePicture();
-        dispose();
+        try { storePicture(); }
+        catch(Exception e) { e.printStackTrace(); }
+        finally { dispose(); }
     }//GEN-LAST:event_jButtonApproveActionPerformed
     
     private void jButtonRefactorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonRefactorActionPerformed
-        // TODO add your handling code here:
+        //This is triggered if the operator rejects the picture
         selection = 'R';
         myLatch.countDown();
         dispose();
     }//GEN-LAST:event_jButtonRefactorActionPerformed
 
+    private void jButtonApproveKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButtonApproveKeyPressed
+        // TODO add your handling code here:
+        if(evt.getKeyChar() == 'L') {
+            selection = 'A';
+            try{Thread.sleep(500);} catch(Exception f){}
+            myLatch.countDown();
+            try { storePicture(); }
+            catch(Exception e) { e.printStackTrace(); }
+            finally { dispose(); }
+        }
+        else if(evt.getKeyChar() == 'R') {
+            selection = 'R';
+            try{Thread.sleep(500);} catch(Exception f){}
+            myLatch.countDown();
+            dispose();
+        }
+    }//GEN-LAST:event_jButtonApproveKeyPressed
+
     public void storePicture() {
+        //Naming format:
+        //3 letter part (IGV) + 5 digit Julian date + 2 digit vendor + 4 digit daily counter
+        // IGVYYDDDVVXXXX -> example = IGV19270050037
+        
+        //Source gets overwritten everytime a picture is taken;
         File src = new File("tempcapture.jpg");
-        File dest = new File("picture_log\\file1.jpg");
-        try{ Files.copy(src.toPath(), dest.toPath()); }
+        //src must be saved into the "picture_log" directory
+        //the name of the dest picture is serialized according to the naming
+        //format shown above
+        File dest = null;
+        
+        File currentDir = new File(IGV_Tester.getCurrentDir()+"\\picture_log");
+        //Find the name of the newest picture in "picture_log"
+        //build the new name based upon the newest picture name
+        String newestFileName = "";
+        long lastMod = Long.MIN_VALUE;
+        for(File file : currentDir.listFiles()) {
+            if(file.lastModified() > lastMod) {
+                newestFileName = file.getName();
+                lastMod = file.lastModified();
+            }
+        }
+        
+        //Compare dates to see if we are still in the same day
+        Calendar lastDate = Calendar.getInstance();
+        Calendar currentDate = Calendar.getInstance();
+        lastDate.setTimeInMillis(lastMod);
+        currentDate.setTimeInMillis(System.currentTimeMillis());
+        
+        boolean sameDay = lastDate.get(Calendar.DAY_OF_YEAR) == currentDate.get(Calendar.DAY_OF_YEAR)
+                && lastDate.get(Calendar.YEAR) == currentDate.get(Calendar.YEAR);
+        
+        //if same day, cast to int, add 1, cast back to string
+        if(sameDay)
+            dest = new File("picture_log\\"+newestFileName.substring(0,8)+
+                    IGV_Tester.vendor +
+                    String.format("%04d", Integer.parseInt(newestFileName.substring(10, 14))+1) +
+                    ".jpg");
+        //else, make the 
+        else
+            dest = new File("picture_log\\IGV" +
+                    (currentDate.get(Calendar.YEAR) % 100) +
+                    currentDate.get(Calendar.DAY_OF_YEAR) +
+                    IGV_Tester.vendor + "0001" + ".jpg");
+        
+        
+        try {
+            Files.copy(src.toPath(), dest.toPath());
+            IGV_serial = dest.getName().substring(0, 14);
+            IGV_Tester.IGV_serial = IGV_serial;
+        }
         catch(IOException e) { e.printStackTrace(); }
     }
     /**
@@ -140,6 +210,7 @@ public class picture_UI extends javax.swing.JFrame {
         }
         //</editor-fold>
 
+        //I didnt want this to run on a different thread.
         /* Create and display the form */
         /*java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {

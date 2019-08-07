@@ -14,25 +14,20 @@ import java.io.InputStreamReader;
  * @author Juan Antonio Martinez Castellanos - U375716
  */
 public class IGV_Motor {
-    
+    //This class controls the TIC motor driver.
     
     public static boolean open()
     {
         Runtime rt = Runtime.getRuntime();
         try {
-            //System.out.println("Moving");
-            //rt.exec("cmd //c ticcmd --exit-safe-start --position 10000");
-            //Thread.sleep(5000)
-            //rt.exec("ticcmd --halt-and-hold");
-            //System.out.println("Stopped");
-            
             String[] cmd = {"cmd.exe","/c","ticcmd --exit-safe-start --position-relative 13000"};
             Process openIGV = Runtime.getRuntime().exec(cmd); //Opening
-            Thread.sleep(41000); //Sleep for 41 seconds
+            Thread.sleep(45000); //Sleep for 40 seconds
             int TXflag = getFlag("TX"); //ON when OPENED
             int RXflag = getFlag("RX"); //ON when CLOSED
             System.out.printf("\n\nOPEN:\n\tTX = %d\nRX = %d\n", TXflag, RXflag);
-            if(TXflag == 0)
+            //if(TXflag == 0)
+            if(RXflag == 1)
                 return false;
             else
                 return true;
@@ -47,11 +42,12 @@ public class IGV_Motor {
         try {
             String[] cmd = {"cmd.exe","/c","ticcmd --exit-safe-start --position-relative -13000"};
             Process openIGV = Runtime.getRuntime().exec(cmd); //Closing
-            Thread.sleep(41000); //Sleep for 41 seconds
+            Thread.sleep(45000); //Sleep for 40 seconds
             int TXflag = getFlag("TX"); //ON when OPENED
             int RXflag = getFlag("RX"); //ON when CLOSED
             System.out.printf("\n\nCLOSE:\n\tTX = %d\nRX = %d\n", TXflag, RXflag);
-            if(RXflag == 0)
+            //if(RXflag == 0)
+            if(TXflag == 1)
                 return false;
             else
                 return true;
@@ -69,13 +65,27 @@ public class IGV_Motor {
             Thread.sleep(25000); //Sleep for 25 seconds
             int TXflag = getFlag("TX"); //ON when OPENED
             int RXflag = getFlag("RX"); //ON when CLOSED
-            System.out.printf("\n\nCLOSE:\n\tTX = %d\nRX = %d\n", TXflag, RXflag);
+            System.out.printf("\n\nCLOSE HALF:\n\tTX = %d\nRX = %d\n", TXflag, RXflag);
         }
         catch (IOException e) {System.out.println(e.getMessage());}
         catch (Exception e) {System.out.println(e.getMessage());}
     }
     
-    //This function parses the status command to get the TX or RX flag
+    public static void openABit() {
+        Runtime rt = Runtime.getRuntime();
+        try {
+            String[] cmd = {"cmd.exe","/c","ticcmd --exit-safe-start --position-relative 2000"};
+            Process openIGV = Runtime.getRuntime().exec(cmd); //Closing
+            Thread.sleep(10000); //Sleep for 10 seconds
+            int TXflag = getFlag("TX"); //ON when OPENED
+            int RXflag = getFlag("RX"); //ON when CLOSED
+            System.out.printf("\n\nOPEN A BIT:\n\tTX = %d\nRX = %d\n", TXflag, RXflag);
+        }
+        catch (IOException e) {System.out.println(e.getMessage());}
+        catch (Exception e) {System.out.println(e.getMessage());}
+    }
+    
+    //This function parses the TIC status command to get the TX or RX flag
     public static int getFlag(String s) //s has to be either "TX" or "RX"
     {
         try {

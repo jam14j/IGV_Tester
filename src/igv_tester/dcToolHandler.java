@@ -5,17 +5,17 @@
  */
 package igv_tester;
 
-import java.io.BufferedReader;
+//import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+//import java.io.InputStreamReader;
 import java.io.InputStream;
-import java.net.ServerSocket;
+//import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.ObjectInputStream;
+//import java.io.ObjectInputStream;
 
 /**
  *
- * @author Juan Antonio MartiU375716
+ * @author Juan Antonio Martinez - U375716
  */
 class dcToolHandler {
     
@@ -36,15 +36,24 @@ class dcToolHandler {
         System.out.println("3 Obtained InputStream");
     }
     
+    public void classDestructor() {
+        try {
+            clientSocket.close();
+            is.close();
+        }
+        catch (IOException e) { e.printStackTrace(); }
+    }
+    
     //This method checks that there have been 4 correct fastenings
     //and returns the serial number, so that it can be matched with a color in main
-    public static String getData() throws Exception, IOException {
+    public String getData(IGV_UI gui) throws Exception, IOException {
         int data = 0;   //null character
         int counter = 0;
         String barcode = "";
         System.out.println("Waiting for IR tool");
         while(counter < 4) {        //count 4 successful fastenings 
             data=is.read();
+            gui.setOutputDC("Screw #"+(counter+1)+"... ");
             //System.out.println("counter<4 loop");
             while((data=is.read())!=44) { //skip the peak torque value, find the comma
                 //System.out.println("data="+((char)data));
@@ -52,8 +61,12 @@ class dcToolHandler {
             }
             data = is.read();
             //System.out.println("data OUT OF LOOP="+((char)data));
-            if(data == 80)     //if the second value is P, count++
+            if(data == 80) {    //if the second value is P, count++
                 counter++;
+                gui.setOutputDC("SUCCESS\n");
+            }
+            else
+                gui.setOutputDC("FAIL\n");
             data=is.read(); //get the comma
             while((data=is.read())!=44) { //skip the torque units
                 //System.out.println("data="+((char)data));
@@ -61,11 +74,16 @@ class dcToolHandler {
             }
             String temp = "";
             //System.out.println("BEFORE WHILE LOOP");
-            while(!temp.equals("290005-1") && !temp.equals("255006") && !temp.equals("200144") && !temp.equals("200232-1")) {
+            boolean serialSearchFlag = true;
+            //while(!temp.equals("290005-1") && !temp.equals("255006") && !temp.equals("200144") && !temp.equals("200232-1")) {
+            while(serialSearchFlag) {
                 //System.out.println("IN WHILE LOOP");
                 temp += (char) is.read();
                 temp = temp.trim();
-                //System.out.println("temp in loop="+temp);
+                System.out.println("temp in loop="+temp);
+                for(String s : IGV_Tester.numbers)
+                    if(s.equals(temp))
+                        serialSearchFlag = false;
             }
             //System.out.println("AFTER WHILE LOOP");
             //System.out.println("temp = "+temp);

@@ -4,18 +4,22 @@
  * and open the template in the editor.
  */
 package igv_tester;
-import java.awt.Toolkit;
+//import java.awt.Toolkit;
+import com.sun.glass.events.KeyEvent;
+import java.awt.event.ActionEvent;
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
+import javax.swing.KeyStroke;
 import javax.swing.text.DefaultCaret;
 /**
  *
- * @author U375716
+ * @author Juan Antonio Martinez Castellanos - U375716
  */
 public class IGV_UI extends javax.swing.JFrame {
-
-    /**
-     * Creates new form IGV_UI
-     */
+    //This class is the main UI
+    
     
     private static String badge;
     
@@ -35,12 +39,49 @@ public class IGV_UI extends javax.swing.JFrame {
         caret2.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
     }
     
-    public static void infoBox(String infoMessage, String titleBar, Object[] options) {
-        dialogReturn = JOptionPane.showOptionDialog(null, infoMessage, "InfoBox: "+titleBar, JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE, null, options, options[1]);
-        //System.out.println("n="+n);
+    //This is the dialog box with 2 options, used many times
+    public void infoBox(String infoMessage, String titleBar, Object[] options) {
+        //I had to implement my own buttons with my own AbstractAction
+        //so that we could use the barcode scanner to select the buttons
+        JButton b0 = new JButton((String)options[0]);
+        JButton b1 = new JButton((String)options[1]);
+        AbstractAction aa = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                if(event.getSource() == b0)
+                    dialogReturn = 0;
+                else if(event.getSource() == b1)
+                    dialogReturn = 1;
+                try{Thread.sleep(500);} catch(Exception f){}
+                IGV_Tester.dialogLatch.countDown();
+                JOptionPane.getRootFrame().dispose();
+            }
+        };
+        b0.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_L, java.awt.event.InputEvent.SHIFT_DOWN_MASK), "LEFT");
+        b0.getActionMap().put("LEFT", aa);
+        b0.addActionListener(aa);
+        b1.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_R, java.awt.event.InputEvent.SHIFT_DOWN_MASK), "RIGHT");
+        b1.getActionMap().put("RIGHT", aa);
+        b1.addActionListener(aa);
+        options[0] = b0;
+        options[1] = b1;
+        JOptionPane.showOptionDialog(null, infoMessage,
+                "InfoBox: "+titleBar, JOptionPane.YES_NO_OPTION,
+                JOptionPane.ERROR_MESSAGE, null, options, options[1]);
+        
     }
     
-    public static int getDialogReturn() {
+    //This is a dialog box with 1 option.
+    //Used only once, for the motor installation.
+    public void motorReminder() {
+        JOptionPane p = new JOptionPane();
+        JOptionPane.showOptionDialog(null, "Please, install the motor now!",
+                "Installing motor", JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE, null,
+                new String[] {"DONE!"}, "DONE!");
+    }
+    
+    public int getDialogReturn() {
         int temp = dialogReturn;
         dialogReturn = -1;
         return temp;
@@ -54,11 +95,13 @@ public class IGV_UI extends javax.swing.JFrame {
         });
     }
     
+    //Method to print to the torque box.
     public void setOutputDC(String output){
         String temp = textField1.getText();
         textField1.setText(temp+output);
     }
     
+    //Method to print to the functional box.
     public void setOutputFunctional(String output){
         String temp = functionalField.getText();
         functionalField.setText(temp+output);

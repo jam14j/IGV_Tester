@@ -8,18 +8,21 @@ package igv_tester;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
+import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
+//import java.awt.Component;
+import java.awt.Dimension;
+//import java.awt.Graphics;
+//import java.awt.Graphics2D;
+//import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
-import javax.swing.JPanel;
+import javax.swing.BoxLayout;
+//import javax.swing.JPanel;
 //import static igv_tester.IGV_Tester.webcam;
 
 import org.jfree.chart.ChartFactory;
@@ -43,16 +46,15 @@ public class cam_UI extends javax.swing.JFrame {
     public cam_UI() {
         super();
         //initComponents();
-        setLayout( new FlowLayout() );
+        //setLayout( new BorderLayout() );
+        setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
         setUndecorated(true);
         webcam = Webcam.getDefault();
         webcam.setViewSize(WebcamResolution.VGA.getSize());
        
         WebcamPanel webcamPanel = new WebcamPanel(webcam);
         webcamPanel.setImageSizeDisplayed(true);
-        //Graphics g;
-        //webcamPanel.paint(g.drawOval(100,100,50,50));
-        add(webcamPanel);
+        add(webcamPanel, BorderLayout.CENTER);
         pack();
         
         jButton1 = new javax.swing.JButton();
@@ -60,6 +62,16 @@ public class cam_UI extends javax.swing.JFrame {
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
+            }
+        });
+        jButton1.setPreferredSize(new Dimension(120, 80));
+        jButton1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if(evt.getKeyChar() == 'R' || evt.getKeyChar() == 'L') {
+                    getPicture();
+                    IGV_Tester.color = validatePicture(IGV_Tester.colors);
+                    try{Thread.sleep(500);} catch(Exception f){}
+                }
             }
         });
         add(jButton1);
@@ -107,16 +119,16 @@ public class cam_UI extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(244, 244, 244)
-                .addComponent(jButton1)
-                .addContainerGap(253, Short.MAX_VALUE))
+                .addContainerGap(212, Short.MAX_VALUE)
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(218, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(349, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(28, 28, 28))
+                .addContainerGap(320, Short.MAX_VALUE)
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(22, Short.MAX_VALUE))
         );
 
         pack();
@@ -137,46 +149,19 @@ public class cam_UI extends javax.swing.JFrame {
             for(int i=0; i<colors.size(); i++) {
                 samplePictures.add(ImageIO.read(new File("sample_images\\"+colors.get(i)+"_sample.jpg")));
             }
-//            BufferedImage blue = ImageIO.read(new File("sample_images\\bluesample.jpg"));
-//            BufferedImage gold = ImageIO.read(new File("sample_images\\goldsample.jpg"));
-//            BufferedImage silver = ImageIO.read(new File("sample_images\\silversample.jpg"));
-//            BufferedImage black = ImageIO.read(new File("sample_images\\blacksample.jpg"));
-            
-//            int[] imageHue = new int[361];
-//            int[] blueHue = new int[361];
-//            int[] goldHue = new int[361];
-//            int[] silverHue = new int[361];
-//            int[] blackHue = new int[361];
-//            for(int i=0; i<361; i++) {
-//                imageHue[i]=0;
-//                blueHue[i]=0;
-//                goldHue[i]=0;
-//                blackHue[i]=0;
-//                silverHue[i]=0;
-//            }
-//            
-//            for(int x=0; x<image.getTileWidth(); x++) {
-//                for(int y=0; y<image.getTileHeight(); y++) {
-//                    int rgb = image.getRGB(x,y);
-//                    float hsb[] = new float[3];
-//                    int r = (rgb >> 16) & 0xFF;
-//                    int g = (rgb >>  8) & 0xFF;
-//                    int b = (rgb      ) & 0xFF;
-//                    Color.RGBtoHSB(r, g, b, hsb);
-//                    int tone = Math.round(hsb[0]*360);
-//                    imageHue[tone] += 1;
-//                    //averageColor+=image.getRGB(x, y);
-//                }
-//            }
-    
-            //this is the picture the operator takes
+       
+            //Get the hue arrays for the new picture and the sample pictures.
+            //This is the picture the operator takes.
             int[] imageHue = getHue(image);
-            //construct 
+            //This are the hues for the sample pictures.
             List<int[]> sampleHues = new ArrayList<int[]>();
             for(int i=0; i<samplePictures.size(); i++) {
                 sampleHues.add(getHue(samplePictures.get(i)));
             }
             
+            //sums is an array of ints with a size equal to the number of
+            //sample pictures. It will store the difference between each
+            //sample picture and the new picture.
             int[] sums = new int[samplePictures.size()];
             //Initialize all averages
             for(int i=0; i<samplePictures.size(); i++)
@@ -186,6 +171,7 @@ public class cam_UI extends javax.swing.JFrame {
                 for(int j=0; j<361; j++)
                     sums[i] += Math.abs( sampleHues.get(i)[j]-imageHue[j] );
             }
+            
             //find the average closest to zero and return a string with the color
             int minIndex = 0;
             int minSum = sums[0];
@@ -197,43 +183,13 @@ public class cam_UI extends javax.swing.JFrame {
             }
             System.out.println("Result = "+colors.get(minIndex)+"!");
             return colors.get(minIndex);
-            
-            /*int[] blueHue = getHue(blue);
-            int[] goldHue = getHue(gold);
-            int[] silverHue = getHue(silver);
-            int[] blackHue = getHue(black);
-            int blueSum=0, goldSum=0, silverSum=0, blackSum=0;
-            for(int i=0; i<361; i++) {
-                blueSum += Math.abs(blueHue[i]-imageHue[i]);
-                blackSum += Math.abs(blackHue[i]-imageHue[i]);
-                goldSum += Math.abs(goldHue[i]-imageHue[i]);
-                silverSum += Math.abs(silverHue[i]-imageHue[i]);
-            }
-            
-            if(blueSum<blackSum && blueSum<goldSum && blueSum<silverSum) {
-                System.out.println("Result = BLUE!");
-                return "BLUE";
-            }
-            else if(blackSum<blueSum && blackSum<goldSum && blackSum<silverSum) {
-                System.out.println("Result = BLACK!");
-                return "BLACK";
-            }
-            else if(goldSum<blackSum && goldSum<blueSum && goldSum<silverSum) {
-                System.out.println("Result = GOLD!");
-                return "GOLD";
-            }
-            else if(silverSum<blackSum && silverSum<goldSum && silverSum<blueSum) {
-                System.out.println("Result = SILVER!");
-                return "SILVER";
-            }
-            else {
-                System.out.println("Not found!");
-                return "ERROR";
-            }*/
         }
         catch(IOException e) {System.out.println(e.getMessage()); return e.getMessage();}
     }
     
+    //This method returns an array of ints that represent how many times
+    //a specific hue appears in the picture. For example, if Hue[3] is equal
+    //to 32, then there are 32 pixels with hue "3" in the picture. 
     public static int[] getHue(BufferedImage pic) {
         int[] Hue = new int[361];
         for(int i=0; i<361; i++)
@@ -254,17 +210,11 @@ public class cam_UI extends javax.swing.JFrame {
         return Hue;
     }
     
+    //This method was used only during testing
     public static void createGraph() {
         try {
             BufferedImage image = ImageIO.read(new File("sample_images\\blackdarksample.jpg"));
             System.out.printf("height = %d\nwidth = %d\n",image.getTileHeight(),image.getTileWidth());
-            /*int rgb = image.getRGB(0,0);
-            float hsb[] = new float[3];
-            int r = (rgb >> 16) & 0xFF;
-            int g = (rgb >>  8) & 0xFF;
-            int b = (rgb      ) & 0xFF;
-            Color.RGBtoHSB(r, g, b, hsb);
-            System.out.printf("rgb = %d 0x%X\nh = %f\ntone = %f\n", rgb, rgb, hsb[0], hsb[0] * 360);*/
             
             //int averageColor=0;
             int[] Hfrequency = new int[361];
@@ -323,6 +273,7 @@ public class cam_UI extends javax.swing.JFrame {
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         getPicture();
         IGV_Tester.color = validatePicture(IGV_Tester.colors);
+        try{Thread.sleep(500);} catch(Exception f){}
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
@@ -364,17 +315,5 @@ public class cam_UI extends javax.swing.JFrame {
     private javax.swing.JButton jButton1;
     // End of variables declaration//GEN-END:variables
 
-    /*public class Circle extends JPanel {
-        public void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setPaint( Color.BLACK);                                  
-            g2d.fill( new Ellipse2D.Double( 5, 30, 65, 100 ) );
-            
-            //setSize(500,500);
-            //g.drawOval(100,100,50,50);
-        }
-        
-    }*/
 
 }
